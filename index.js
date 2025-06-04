@@ -9,20 +9,15 @@ const { Server } = require('socket.io');
 const app = express();
 const server = http.createServer(app);
 
-// const io = new Server(server, {
-//   cors: {
-//     origin: "*"
-//   }
-// });
+// app.use(cors());
+const allowedOrigin = process.env.FRONTEND_URL || 'http://localhost:5173';
+
 const io = new Server(server, {
   cors: {
     origin: allowedOrigin,
     methods: ["GET", "POST"]
   }
 });
-
-// app.use(cors());
-const allowedOrigin = process.env.FRONTEND_URL || 'http://localhost:5173';
 
 app.use(cors({
   origin: allowedOrigin,
@@ -128,6 +123,34 @@ io.on("connection", (socket) => {
 app.get('/', (req, res) => {
   res.send('GeoClover backend is running. This server uses Socket.IO and REST APIs.');
 });
+
+// Add new POST endpoint
+// Add this somewhere after your app.use(express.json()) and before server.listen(PORT)
+app.post('/api/auth/exchange-code', async (req, res) => {
+  const { code, redirect_uri } = req.body;
+
+  if (!code || !redirect_uri) {
+    return res.status(400).json({ error: 'Missing code or redirect_uri' });
+  }
+
+  try {
+    const params = new URLSearchParams();
+    params.append('client_id', process.env.ARCGIS_CLIENT_ID);
+    params.append('client_secret', process.env.ARCGIS_CLIENT_SECRET);
+    params.append('grant_type', 'authorization_code');
+    params.append('code', code);
+    params.append('redirect_uri', redirect_uri);
+    params.append('f', 'json');
+
+    const response = await axios.post('https://www.arcgis.com/sharing/rest/oauth2/token', params);
+
+    res.json(response.data);
+  } catch (error) {
+    console.error('Error exchanging code for token:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Failed to exchange code for token' });
+  }
+});
+
 
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
