@@ -1,4 +1,10 @@
-require('dotenv').config();
+// Load environment variables from the correct .env file
+const path = require('path');
+const ENV_PATH = process.env.NODE_ENV === 'production' 
+  ? '.env.production' 
+  : '.env.development';
+
+require('dotenv').config({ path: path.resolve(__dirname, ENV_PATH) });
 
 const express = require('express');
 const http = require('http');
@@ -9,51 +15,27 @@ const { Server } = require('socket.io');
 const app = express();
 const server = http.createServer(app);
 
-// app.use(cors());
-const allowedOrigin = process.env.FRONTEND_URL || 'http://localhost:5173';
+const PORT = process.env.PORT || 3000;
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+const ARCGIS_LAYER_URL = process.env.ARCGIS_LAYER_URL;
 
-const io = new Server(server, {
-  cors: {
-    origin: allowedOrigin,
-    methods: ["GET", "POST"]
-  }
-});
-
+// Enable CORS
 app.use(cors({
-  origin: allowedOrigin,
-  credentials: true, // only if you need to support cookies
+  origin: FRONTEND_URL,
+  credentials: true,
 }));
 
 app.use(express.json());
 
-const PORT = process.env.PORT || 3000;
+// Socket.IO server with CORS
+const io = new Server(server, {
+  cors: {
+    origin: FRONTEND_URL,
+    methods: ["GET", "POST"]
+  }
+});
 
-// ArcGIS Feature Layer API endpoint and token placeholder
-const ARCGIS_LAYER_URL = process.env.ARCGIS_LAYER_URL;
-// const ARCGIS_TOKEN = process.env.ARCGIS_TOKEN;
-
-// Function to get a fresh token using client credentials
-// async function getAccessToken() {
-//   try {
-//     // const response = await axios.post('https://www.arcgis.com/sharing/rest/oauth2/token', null, {
-//     const response = await axios.post(`${ARCGIS_LAYER_URL}/applyEdits`, null, {  
-//       params: {
-//         client_id: process.env.ARCGIS_CLIENT_ID,
-//         client_secret: process.env.ARCGIS_CLIENT_SECRET,
-//         grant_type: 'client_credentials',
-//         expiration: 60, // 60 minutes
-//         f: 'json'
-//       }
-//     });
-
-//     return response.data.access_token;
-//   } catch (error) {
-//     console.error('Error fetching ArcGIS token:', error.response?.data || error);
-//     return null;
-//   }
-// }
-
-// Update getAccessToken function
+// Fetch ArcGIS token using client credentials
 async function getAccessToken() {
   try {
     const response = await axios.post('https://www.arcgis.com/sharing/rest/oauth2/token', null, {
@@ -68,27 +50,22 @@ async function getAccessToken() {
 
     return response.data.access_token;
   } catch (error) {
-    console.error('Error fetching ArcGIS token:', error.response?.data || error);
+    console.error('Error fetching ArcGIS token:', error.response?.data || error.message);
     return null;
   }
 }
 
-
+// Socket.IO Events
 io.on("connection", (socket) => {
-  console.log("User connected");
+  console.log("✅ Socket connected");
 
   socket.on("new-pin", async (data) => {
-    console.log("Received pin:", data);
-
-    // Broadcast the new pin to all clients
+    console.log("📍 Received pin:", data);
     io.emit("add-pin", data);
 
-    // Fetch a fresh ArcGIS token
     const token = await getAccessToken();
-    if (!token) {
-      console.error("Failed to get ArcGIS token.");
-    }
-    // Send to ArcGIS layer via REST API
+    if (!token) return console.error("❌ Failed to get ArcGIS token.");
+
     try {
       const response = await axios.post(ARCGIS_LAYER_URL, null, {
         params: {
@@ -109,23 +86,18 @@ io.on("connection", (socket) => {
         }
       });
 
-      console.log("ArcGIS response:", response.data);
+      console.log("✅ ArcGIS response:", response.data);
     } catch (error) {
-      console.error("Error sending to ArcGIS:", error);
+      console.error("❌ Error sending to ArcGIS:", error.response?.data || error.message);
     }
   });
 
   socket.on("disconnect", () => {
-    console.log("User disconnected");
+    console.log("⚡️ Socket disconnected");
   });
 });
 
-app.get('/', (req, res) => {
-  res.send('GeoClover backend is running. This server uses Socket.IO and REST APIs.');
-});
-
-// Add new POST endpoint
-// Add this somewhere after your app.use(express.json()) and before server.listen(PORT)
+// Exchange OAuth code for token (called from frontend)
 app.post('/api/auth/exchange-code', async (req, res) => {
   const { code, redirect_uri } = req.body;
 
@@ -134,24 +106,28 @@ app.post('/api/auth/exchange-code', async (req, res) => {
   }
 
   try {
-    const params = new URLSearchParams();
-    params.append('client_id', process.env.ARCGIS_CLIENT_ID);
-    params.append('client_secret', process.env.ARCGIS_CLIENT_SECRET);
-    params.append('grant_type', 'authorization_code');
-    params.append('code', code);
-    params.append('redirect_uri', redirect_uri);
-    params.append('f', 'json');
+    const params = new URLSearchParams({
+      client_id: process.env.ARCGIS_CLIENT_ID,
+      client_secret: process.env.ARCGIS_CLIENT_SECRET,
+      grant_type: 'authorization_code',
+      code: code,
+      redirect_uri: redirect_uri,
+      f: 'json',
+    });
 
     const response = await axios.post('https://www.arcgis.com/sharing/rest/oauth2/token', params);
-
     res.json(response.data);
   } catch (error) {
-    console.error('Error exchanging code for token:', error.response?.data || error.message);
+    console.error('Error exchanging code:', error.response?.data || error.message);
     res.status(500).json({ error: 'Failed to exchange code for token' });
   }
 });
 
+// Simple test route
+app.get('/', (req, res) => {
+  res.send('🌱 GeoClover backend is live!');
+});
 
 server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });
