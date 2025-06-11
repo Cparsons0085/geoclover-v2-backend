@@ -19,6 +19,8 @@ const PORT = process.env.PORT || 3000;
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 const ARCGIS_LAYER_URL = process.env.ARCGIS_LAYER_URL;
 
+console.log('🛠️ FRONTEND_URL =>', JSON.stringify(FRONTEND_URL));
+
 // Enable CORS
 app.use(cors({
   origin: FRONTEND_URL,
