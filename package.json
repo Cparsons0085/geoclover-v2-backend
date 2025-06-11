@@ -1,5 +1,5 @@
 {
-  "name": "geoclover-backend",
+  "name": "geoclover-v2-backend",
   "version": "1.0.0",
   "description": "Backend for GeoClover real-time pin drop app",
   "main": "index.js",

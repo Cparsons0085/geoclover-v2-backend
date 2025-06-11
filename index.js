@@ -64,6 +64,7 @@ io.on("connection", (socket) => {
     io.emit("add-pin", data);
 
     const token = await getAccessToken();
+    // send to ArcGIS Feature Layer via axios...
     if (!token) return console.error("❌ Failed to get ArcGIS token.");
 
     try {
@@ -97,31 +98,32 @@ io.on("connection", (socket) => {
   });
 });
 
-// Exchange OAuth code for token (called from frontend)
-app.post('/api/auth/exchange-code', async (req, res) => {
-  const { code, redirect_uri } = req.body;
+// Remove ArcGIS OAuth Route for v2
+// Exchange OAuth code for token (called from frontend, sends a code and you exchange for a token)
+// app.post('/api/auth/exchange-code', async (req, res) => {
+//   const { code, redirect_uri } = req.body;
 
-  if (!code || !redirect_uri) {
-    return res.status(400).json({ error: 'Missing code or redirect_uri' });
-  }
+//   if (!code || !redirect_uri) {
+//     return res.status(400).json({ error: 'Missing code or redirect_uri' });
+//   }
 
-  try {
-    const params = new URLSearchParams({
-      client_id: process.env.ARCGIS_CLIENT_ID,
-      client_secret: process.env.ARCGIS_CLIENT_SECRET,
-      grant_type: 'authorization_code',
-      code: code,
-      redirect_uri: redirect_uri,
-      f: 'json',
-    });
+//   try {
+//     const params = new URLSearchParams({
+//       client_id: process.env.ARCGIS_CLIENT_ID,
+//       client_secret: process.env.ARCGIS_CLIENT_SECRET,
+//       grant_type: 'authorization_code',
+//       code: code,
+//       redirect_uri: redirect_uri,
+//       f: 'json',
+//     });
 
-    const response = await axios.post('https://www.arcgis.com/sharing/rest/oauth2/token', params);
-    res.json(response.data);
-  } catch (error) {
-    console.error('Error exchanging code:', error.response?.data || error.message);
-    res.status(500).json({ error: 'Failed to exchange code for token' });
-  }
-});
+//     const response = await axios.post('https://www.arcgis.com/sharing/rest/oauth2/token', params);
+//     res.json(response.data);
+//   } catch (error) {
+//     console.error('Error exchanging code:', error.response?.data || error.message);
+//     res.status(500).json({ error: 'Failed to exchange code for token' });
+//   }
+// });
 
 // Simple test route
 app.get('/', (req, res) => {
