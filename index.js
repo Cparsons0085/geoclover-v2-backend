@@ -16,7 +16,8 @@ const app = express();
 const server = http.createServer(app);
 
 const PORT = process.env.PORT || 3000;
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+const FRONTEND_URL =
+  (process.env.FRONTEND_URL || 'http://localhost:5173').trim();
 const ARCGIS_LAYER_URL = process.env.ARCGIS_LAYER_URL;
 
 console.log('🛠️ FRONTEND_URL =>', JSON.stringify(FRONTEND_URL));
