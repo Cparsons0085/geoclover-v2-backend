@@ -27,6 +27,24 @@ app.use(cors({
 
 app.use(express.json());
 
+// In-memory user store (for now)
+const users = [];
+
+app.post("/api/signup", (req, res) => {
+  const { username, password } = req.body;
+  if (!username || !password) {
+    return res.status(400).json({ error: "Username and password required" });
+  }
+
+  const existingUser = users.find((u) => u.username === username);
+  if (existingUser) {
+    return res.status(409).json({ error: "Username taken" });
+  }
+
+  users.push({ username, password }); // For real apps, hash passwords and use a database
+  res.json({ token: "fake-token-for-now" });
+});
+
 // Socket.IO server with CORS
 const io = new Server(server, {
   cors: {
