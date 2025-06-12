@@ -1,82 +1,47 @@
-# GeoClover-v2 Backend
+# GeoClover-v2-Backend
 
-This is the backend for the GeoClover-v2 web application — a real-time geospatial platform that allows users to submit clover sightings with custom usernames (no ArcGIS OAuth required). The backend handles data persistence, WebSocket communication, and interaction with ArcGIS Feature Services.
-
----
-
-## 🔧 Key Responsibilities
-
-* Manage and verify user-generated username + short password entries
-* Accept clover submissions (photo + GPS coordinates) from frontend
-* Store and update clover data to an ArcGIS Online Feature Layer
-* Enable real-time data syncing between clients using Socket.IO
-* Provide RESTful API endpoints for frontend interactions
+> Backend for the GeoClover real-time pin-drop app  
+> Built with Node.js, Express, Socket.io, and Axios
 
 ---
 
-## 🛠️ Tech Stack
+## 👩‍💻 About Me
 
-* **Node.js + Express.js** – server and routing
-* **Socket.IO** – real-time WebSocket communication
-* **ArcGIS REST API** – data persistence in hosted Feature Layers
-* **Axios** – external HTTP requests
-* **dotenv** – environment configuration
-
----
-
-## 📁 Folder Structure
-
-* `/routes` – Express routes for POST/GET submissions
-* `/services` – Helper logic for working with ArcGIS Feature Services
-* `/sockets` – Socket.IO configuration for live map syncing
-* `/utils` – Username/password validation and local ID handling
+👋 Hi, I’m **Cristy Parsons** ([@Cparsons0085](https://github.com/Cparsons0085))  
+🎓 Currently pursuing a degree in CIT with a focus on Geospatial Technologies  
+🌱 Learning full-stack development (React, Node.js, ect.) and DevOps practices  
+🔭 Building GeoClover-v2: a real-time GIS-powered pin-drop app  
+💬 Feel free to **message me** here on GitHub or via email at `cristylynn0920@gmail.com`
 
 ---
 
-## 🌐 Environment Variables
+## 🚀 Features
 
-Create a `.env` file in the root directory with the following:
+- **User signup** (`POST /api/signup`)  
+- **Real-time pin broadcasting** via Socket.io  
+- **ArcGIS Feature Layer** integration for persisting pins  
+- **CORS** configured for your Vite/Netlify frontend  
 
-```
-ARCGIS_CLIENT_ID=your-client-id
-ARCGIS_CLIENT_SECRET=your-client-secret
-ARCGIS_REDIRECT_URI=http://localhost:3000/callback
-FEATURE_LAYER_URL=https://services.arcgis.com/.../FeatureServer/0
-```
+## 🛠️ Prerequisites
 
-Obtain your credentials from [ArcGIS Developer](https://developers.arcgis.com/).
+- Node.js ≥ 16  
+- npm  
+- A GitHub repo (this one)  
+- A Render.com account (or another hosting provider)  
 
----
+## ⚙️ Environment Variables
 
-## 🚀 Getting Started
+Create `.env.development` and `.env.production` (already in `.gitignore`):
 
-```bash
-git clone https://github.com/Cparsons0085/geoclover-v2-backend.git
-cd geoclover-v2-backend
-npm install
-npm run dev
-```
+```dotenv
+# .env.development
+NODE_ENV=development
+PORT=3000
+FRONTEND_URL=http://localhost:5173
+ARCGIS_LAYER_URL=https://your-arcgis-service/FeatureServer/0/applyEdits
+ARCGIS_CLIENT_ID=yourClientId
+ARCGIS_CLIENT_SECRET=yourClientSecret
 
-Server will run at: `http://localhost:3000`
-
-Make sure the frontend (on port 5173) is configured to send data to this backend.
-
----
-
-## 🧪 API Endpoints
-
-* `POST /submit` – Accepts clover sightings (username, image, location)
-* `GET /clovers` – Returns list of submitted clovers
-* `POST /verify-user` – Verifies or registers short username/password
-
----
-
-## 🔄 WebSocket Events
-
-* `new-clover` – Broadcasts new sighting to all connected clients
-* `connect-user` – Initializes map view for new session
-
----
 
 ## 👤 Author
 
