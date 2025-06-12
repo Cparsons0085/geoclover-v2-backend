@@ -22,6 +22,7 @@ const ARCGIS_LAYER_URL = process.env.ARCGIS_LAYER_URL;
 
 console.log('🛠️ FRONTEND_URL =>', JSON.stringify(FRONTEND_URL));
 
+console.log(process.env.NODE_ENV, process.env.PORT, FRONTEND_URL)
 // Enable CORS
 app.use(cors({
   origin: FRONTEND_URL,
