@@ -20,9 +20,32 @@ const FRONTEND_URL =
   (process.env.FRONTEND_URL || 'http://localhost:5173').trim();
 const ARCGIS_LAYER_URL = process.env.ARCGIS_LAYER_URL;
 
-console.log('🛠️ FRONTEND_URL =>', JSON.stringify(FRONTEND_URL));
+// Import and initialize Postgres
+const { Pool } = require('pg');
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+});
 
+// Auto-bootstrap users table
+(async () => {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        username TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL
+      );
+    `);
+    console.log("✅ users table ensured");
+  } catch (err) {
+    console.error("❌ Error ensuring users table:", err);
+  }
+})();
+
+console.log('🛠️ FRONTEND_URL =>', JSON.stringify(FRONTEND_URL));
 console.log(process.env.NODE_ENV, process.env.PORT, FRONTEND_URL)
+
 // Enable CORS
 app.use(cors({
   origin: FRONTEND_URL,
@@ -32,38 +55,78 @@ app.use(cors({
 app.use(express.json());
 
 // In-memory user store (for now)
-const users = [];
+// const users = [];
 
-app.post("/api/signup", (req, res) => {
+// 3) New signup handler using Postgres
+app.post("/api/signup", async (req, res) => {
   const { username, password } = req.body;
-  if (!username || !password) {
-    return res.status(400).json({ error: "Username and password required" });
-  }
+  if (!username || !password) return res.status(400).json({ error: "Username and password required" });
 
-  const existingUser = users.find((u) => u.username === username);
-  if (existingUser) {
-    return res.status(409).json({ error: "Username taken" });
+  try {
+    await pool.query(
+      "INSERT INTO users (username, password) VALUES ($1, $2)",
+      [username, password]
+    );
+    res.json({ token: "fake-token-for-now" });
+  } catch (err) {
+    if (err.code === "23505") {           // unique_violation
+      return res.status(409).json({ error: "Username taken" });
+    }
+    console.error("Signup error:", err);
+    res.status(500).json({ error: "Signup failed" });
   }
+});
 
-  users.push({ username, password }); // For real apps, hash passwords and use a database
-  res.json({ token: "fake-token-for-now" });
+// app.post("/api/signup", (req, res) => {
+//   const { username, password } = req.body;
+//   if (!username || !password) {
+//     return res.status(400).json({ error: "Username and password required" });
+//   }
+
+//   const existingUser = users.find((u) => u.username === username);
+//   if (existingUser) {
+//     return res.status(409).json({ error: "Username taken" });
+//   }
+
+//   users.push({ username, password }); // For real apps, hash passwords and use a database
+//   res.json({ token: "fake-token-for-now" });
+// });
+
+// 4) New login handler using Postgres
+app.post("/api/login", async (req, res) => {
+  const { username, password } = req.body;
+  if (!username || !password) return res.status(400).json({ error: "Username and password required" });
+
+  try {
+    const result = await pool.query(
+      "SELECT id FROM users WHERE username = $1 AND password = $2",
+      [username, password]
+    );
+    if (result.rowCount === 0) {
+      return res.status(401).json({ error: "Invalid username or password" });
+    }
+    res.json({ token: "fake-token-for-now" });
+  } catch (err) {
+    console.error("Login error:", err);
+    res.status(500).json({ error: "Login failed" });
+  }
 });
 
 // Insert Login route
-app.post("/api/login", (req, res) => {
-  const { username, password } = req.body;
-  if (!username || !password) {
-    return res.status(400).json({ error: "Username and password required" });
-  }
+// app.post("/api/login", (req, res) => {
+//   const { username, password } = req.body;
+//   if (!username || !password) {
+//     return res.status(400).json({ error: "Username and password required" });
+//   }
 
-  const user = users.find(u => u.username === username && u.password === password);
-  if (!user) {
-    return res.status(401).json({ error: "Invalid username or password" });
-  }
+//   const user = users.find(u => u.username === username && u.password === password);
+//   if (!user) {
+//     return res.status(401).json({ error: "Invalid username or password" });
+//   }
 
-  // In a real app you’d issue a JWT; here we reuse the fake-token
-  res.json({ token: "fake-token-for-now" });
-});
+//   // In a real app you’d issue a JWT; here we reuse the fake-token
+//   res.json({ token: "fake-token-for-now" });
+// });
 
 // Socket.IO server with CORS
 const io = new Server(server, {
