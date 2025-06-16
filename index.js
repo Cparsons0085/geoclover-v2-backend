@@ -22,9 +22,14 @@ const ARCGIS_LAYER_URL = process.env.ARCGIS_LAYER_URL;
 
 // Import and initialize Postgres
 const { Pool } = require('pg');
+
+const isProd = process.env.NODE_ENV === 'production';
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
+  ssl: isProd 
+    ? { rejectUnauthorized: false }  // only use SSL in prod (Render)
+    : false                          // no SSL in local dev
 });
 
 // Auto-bootstrap users table
@@ -48,7 +53,7 @@ console.log(process.env.NODE_ENV, process.env.PORT, FRONTEND_URL)
 
 // Enable CORS
 app.use(cors({
-  origin: FRONTEND_URL,
+  origin: process.env.FRONTEND_URL,    // "http://localhost:5173"
   credentials: true,
 }));
 
@@ -128,12 +133,42 @@ app.post("/api/login", async (req, res) => {
 //   res.json({ token: "fake-token-for-now" });
 // });
 
+app.post("/api/pins", async (req, res) => {
+  const { latitude: y, longitude: x, username, imageUrl } = req.body;
+  try {
+    // 1) Broadcast to all connected clients
+    io.emit("add-pin", { lat: y, lng: x, username, imageUrl });
+
+    // 2) Forward to ArcGIS
+    const token = await getAccessToken();
+    if (!token) throw new Error("ArcGIS token failed");
+
+    const response = await axios.post(ARCGIS_LAYER_URL, null, {
+      params: {
+        f: "json",
+        adds: JSON.stringify([{
+          geometry: { x, y, spatialReference: { wkid: 4326 } },
+          attributes: {
+            username,
+            imageUrl,
+            timestamp: new Date().toISOString()
+          }
+        }]),
+        token
+      }
+    });
+
+    // 3) Return success
+    return res.status(201).json(response.data);
+  } catch (err) {
+    console.error("Error in /api/pins:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 // Socket.IO server with CORS
 const io = new Server(server, {
-  cors: {
-    origin: FRONTEND_URL,
-    methods: ["GET", "POST"]
-  }
+  cors: { origin: process.env.FRONTEND_URL, methods: ["GET","POST"] }
 });
 
 // Fetch ArcGIS token using client credentials
