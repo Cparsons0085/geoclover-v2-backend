@@ -52,10 +52,18 @@ console.log('🛠️ FRONTEND_URL =>', JSON.stringify(FRONTEND_URL));
 console.log(process.env.NODE_ENV, process.env.PORT, FRONTEND_URL)
 
 // Enable CORS
-app.use(cors({
-  origin: process.env.FRONTEND_URL,    // "http://localhost:5173"
+aapp.use(cors({
+  origin: process.env.FRONTEND_URL,
   credentials: true,
 }));
+
+// Socket.IO server with CORS
+const io = new Server(server, {
+  cors: {
+    origin: process.env.FRONTEND_URL,
+    methods: ["GET","POST"]
+  }
+});
 
 app.use(express.json());
 
@@ -164,11 +172,6 @@ app.post("/api/pins", async (req, res) => {
     console.error("Error in /api/pins:", err);
     return res.status(500).json({ error: err.message });
   }
-});
-
-// Socket.IO server with CORS
-const io = new Server(server, {
-  cors: { origin: process.env.FRONTEND_URL, methods: ["GET","POST"] }
 });
 
 // Fetch ArcGIS token using client credentials
