@@ -269,6 +269,10 @@ app.get('/', (req, res) => {
   res.send('🌱 GeoClover backend is live!');
 });
 
+app.get("/api/pins", (req, res) => {
+  res.status(501).json({ error: "Not implemented. Pins are loaded from ArcGIS." });
+});
+
 server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
