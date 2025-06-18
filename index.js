@@ -52,7 +52,7 @@ console.log('🛠️ FRONTEND_URL =>', JSON.stringify(FRONTEND_URL));
 console.log(process.env.NODE_ENV, process.env.PORT, FRONTEND_URL)
 
 // Enable CORS
-aapp.use(cors({
+app.use(cors({
   origin: process.env.FRONTEND_URL,
   credentials: true,
 }));
